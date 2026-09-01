@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ML models (large binaries)
+backend/models/*.pkl
+
+# SQLite database
+data/
+*.db
+
+# Media uploads
+backend/media/
+
+# Node modules
+dashboard/node_modules/
+
+# Vite build output
+dashboard/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
