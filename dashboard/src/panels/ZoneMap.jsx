@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Map, X, Activity, Droplets, Thermometer, Wind, AlertCircle } from 'lucide-react';
+import { Map, X, Activity, Droplets, Thermometer, Wind, AlertCircle, Camera } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 

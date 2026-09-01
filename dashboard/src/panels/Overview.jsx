@@ -1,18 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Bell, Droplets, AlertTriangle } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 
 export default function Overview() {
   const [healthData, setHealthData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [irrigation, setIrrigation] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${API_BASE}/field/health`);
-        setHealthData(await res.json());
+        const [healthRes, alertsRes, irriRes] = await Promise.all([
+          fetch(`${API_BASE}/field/health`),
+          fetch(`${API_BASE}/alerts/latest?limit=3`),
+          fetch(`${API_BASE}/field/irrigation`)
+        ]);
+        setHealthData(await healthRes.json());
+        
+        const alertsData = await alertsRes.json();
+        setAlerts(alertsData.alerts || []);
+        
+        const irriData = await irriRes.json();
+        setIrrigation((irriData.zones || []).filter(z => z.recommendation.includes('IRRIGATE')));
       } catch (err) {
-        console.error("Failed to fetch health data", err);
+        console.error("Failed to fetch overview data", err);
       }
     };
     fetchData();
@@ -21,7 +33,7 @@ export default function Overview() {
   }, []);
 
   const stages = ['SENSE', 'FUSE', 'INFER', 'VERIFY', 'ALERT'];
-  const activeStage = Math.floor(Date.now() / 2000) % stages.length; // Fake live progression for the demo
+  const activeStage = Math.floor(Date.now() / 2000) % stages.length; // Fake live progression
 
   const displayScore = healthData ? Math.round(healthData.composite_score * 100) : 0;
   let color = 'var(--color-primary)';
@@ -114,26 +126,75 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Active Zones</span>
-            <span style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-main)' }}>{healthData?.zone_count || 0}</span>
+        {/* Right side content */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Quick Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
+            <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Active Zones</span>
+              <span style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-main)' }}>{healthData?.zone_count || 0}</span>
+            </div>
+            <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Recent Alerts</span>
+              <span style={{ fontSize: '28px', fontWeight: '700', color: healthData?.recent_alert_count > 0 ? 'var(--color-warning)' : 'var(--text-main)' }}>
+                {healthData?.recent_alert_count || 0}
+              </span>
+            </div>
+            <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>System Mode</span>
+              <span style={{ fontSize: '20px', fontWeight: '600', color: 'var(--color-primary)' }}>Autonomous</span>
+            </div>
+            <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Last Sync</span>
+              <span style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-main)' }}>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
           </div>
-          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Recent Alerts</span>
-            <span style={{ fontSize: '36px', fontWeight: '700', color: healthData?.recent_alert_count > 0 ? 'var(--color-warning)' : 'var(--text-main)' }}>
-              {healthData?.recent_alert_count || 0}
-            </span>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', flex: 1 }}>
+            {/* Recent Alerts Feed */}
+            <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-secondary)' }}>
+                <AlertTriangle size={16} /> Latest Critical Events
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                {alerts.length === 0 ? (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No recent events.</span>
+                ) : alerts.map(alert => (
+                  <div key={alert.alert_id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid var(--card-border)', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '600', fontSize: '13px', color: alert.confidence > 0.8 ? 'var(--color-danger)' : 'var(--color-warning)' }}>
+                        {alert.type.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(alert.ts * 1000).toLocaleTimeString()}</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Zone: {alert.field_zone.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Irrigation */}
+            <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-secondary)' }}>
+                <Droplets size={16} /> Active Irrigation
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                {irrigation.length === 0 ? (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>All zones adequately hydrated. No active irrigation.</span>
+                ) : irrigation.map(zone => (
+                  <div key={zone.node_id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
+                    <div className="status-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-info)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontWeight: '600', fontSize: '13px', color: 'var(--color-info)' }}>{zone.node_id.toUpperCase()}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Moisture: {Math.round(zone.soil_moisture * 100)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>System Mode</span>
-            <span style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-primary)' }}>Autonomous</span>
-          </div>
-          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Last Sync</span>
-            <span style={{ fontSize: '20px', fontWeight: '500', color: 'var(--text-main)' }}>{new Date().toLocaleTimeString()}</span>
-          </div>
+          
         </div>
       </div>
     </div>

@@ -363,7 +363,7 @@ def get_field_health():
         conn = get_conn()
 
         # Get latest reading per node
-        nodes = ["node-01", "node-02", "node-03", "node-04", "node-05"]
+        nodes = ["node-01", "node-02", "node-03", "node-04"]
         zone_scores = []
         zone_details = []
 
@@ -469,7 +469,7 @@ def get_irrigation():
     """Get irrigation recommendations for all zones."""
     try:
         conn = get_conn()
-        nodes = ["node-01", "node-02", "node-03", "node-04", "node-05"]
+        nodes = ["node-01", "node-02", "node-03", "node-04"]
         results = []
 
         for node_id in nodes:
@@ -609,7 +609,7 @@ def set_offline_mode(payload: dict):
 @app.get("/system/health")
 def get_system_health():
     # Return status of all 5 nodes
-    nodes = ["node-01", "node-02", "node-03", "node-04", "node-05"]
+    nodes = ["node-01", "node-02", "node-03", "node-04"]
     conn = get_conn()
     statuses = []
     for n in nodes:

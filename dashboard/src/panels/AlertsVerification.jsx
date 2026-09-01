@@ -1,27 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, Check, X, ChevronDown, ChevronUp, Volume2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
+
+const LANGUAGES = [
+  { code: 'en-US', name: 'English' },
+  { code: 'hi-IN', name: 'Hindi' },
+  { code: 'ta-IN', name: 'Tamil' },
+  { code: 'te-IN', name: 'Telugu' },
+];
 
 export default function AlertsVerification() {
   const [alerts, setAlerts] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [language, setLanguage] = useState('en-US');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  
+  // Keep track of announced alert IDs so we don't repeat them
+  const announcedAlertsRef = useRef(new Set());
 
   const fetchAlerts = async () => {
     try {
       const res = await fetch(`${API_BASE}/alerts/latest?limit=20`);
       const data = await res.json();
-      setAlerts(data.alerts || []);
+      const newAlerts = data.alerts || [];
+      setAlerts(newAlerts);
+      
+      // Process new alerts for voice announcement
+      if (newAlerts.length > 0) {
+        const latestAlert = newAlerts[0]; // the feed is ordered by latest first
+        
+        if (!announcedAlertsRef.current.has(latestAlert.alert_id)) {
+          announcedAlertsRef.current.add(latestAlert.alert_id);
+          
+          if (voiceEnabled && window.speechSynthesis) {
+            let message = '';
+            
+            // Basic translation fallback for the alert speech based on language code
+            if (language === 'hi-IN') {
+              message = `ध्यान दें! ज़ोन ${latestAlert.field_zone} में ${latestAlert.type.replace('_', ' ')} का अलर्ट है। कृपया जाँच करें।`;
+            } else if (language === 'ta-IN') {
+              message = `கவனம்! மண்டலம் ${latestAlert.field_zone} இல் ${latestAlert.type.replace('_', ' ')} எச்சரிக்கை. தயவுசெய்து சரிபார்க்கவும்.`;
+            } else if (language === 'te-IN') {
+              message = `శ్రద్ధ వహించండి! జోన్ ${latestAlert.field_zone} లో ${latestAlert.type.replace('_', ' ')} హెచ్చరిక. దయచేసి తనిఖీ చేయండి.`;
+            } else {
+              message = `Attention! ${latestAlert.type.replace('_', ' ')} alert in zone ${latestAlert.field_zone}.`;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = language;
+            window.speechSynthesis.speak(utterance);
+          }
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch alerts", err);
     }
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      window.speechSynthesis?.cancel(); // cleanup speech on unmount
+    };
+  }, [language, voiceEnabled]);
 
   const handleConfirm = async (e, alertId, confirmed) => {
     e.stopPropagation();
@@ -43,9 +88,24 @@ export default function AlertsVerification() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
-      <div>
-        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Alerts & Verification</h2>
-        <p style={{ color: 'var(--text-muted)' }}>Confidence-tiered alert feed and farmer confirmation loop.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Alerts & Verification</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Confidence-tiered alert feed and farmer confirmation loop.</p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg)', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+          <Volume2 size={18} color={voiceEnabled ? 'var(--color-primary)' : 'var(--text-muted)'} onClick={() => setVoiceEnabled(!voiceEnabled)} style={{ cursor: 'pointer' }} />
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)}
+            style={{ border: 'none', background: 'transparent', outline: 'none', color: 'var(--text-main)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+          >
+            {LANGUAGES.map(lang => (
+              <option key={lang.code} value={lang.code}>{lang.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '8px', overflowY: 'auto', flex: 1 }}>

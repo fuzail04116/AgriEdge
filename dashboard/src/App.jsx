@@ -10,7 +10,6 @@ import GasSignature from './panels/GasSignature';
 import FusionRisk from './panels/FusionRisk';
 import AlertsVerification from './panels/AlertsVerification';
 import IrrigationActions from './panels/IrrigationActions';
-import ImpactComparison from './panels/ImpactComparison';
 import SystemHealth from './panels/SystemHealth';
 
 function App() {
@@ -26,7 +25,6 @@ function App() {
       case 'fusion': return <FusionRisk />;
       case 'alerts': return <AlertsVerification />;
       case 'irrigation': return <IrrigationActions />;
-      case 'impact': return <ImpactComparison />;
       case 'health': return <SystemHealth />;
       default: return <Overview />;
     }

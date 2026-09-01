@@ -3,7 +3,7 @@ import { Line } from 'react-chartjs-2';
 import { Wind, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
-const NODES = ['node-01', 'node-02', 'node-03', 'node-04', 'node-05'];
+const NODES = ['node-01', 'node-02', 'node-03', 'node-04'];
 
 export default function GasSignature() {
   const [activeNode, setActiveNode] = useState('node-01');

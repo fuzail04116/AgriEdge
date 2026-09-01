@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GitMerge } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
-const NODES = ['node-01', 'node-02', 'node-03', 'node-04', 'node-05'];
+const NODES = ['node-01', 'node-02', 'node-03', 'node-04'];
 
 export default function FusionRisk() {
   const [activeNode, setActiveNode] = useState('node-01');

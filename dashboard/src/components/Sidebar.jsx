@@ -21,7 +21,6 @@ const PANELS = [
   { id: 'fusion', label: 'Fusion & Risk Engine', icon: GitMerge },
   { id: 'alerts', label: 'Alerts & Verification', icon: Bell },
   { id: 'irrigation', label: 'Irrigation & Actions', icon: Droplets },
-  { id: 'impact', label: 'Impact & Comparison', icon: BarChart },
   { id: 'health', label: 'System Health', icon: Server },
 ];
 
